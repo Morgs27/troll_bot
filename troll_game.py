@@ -5,6 +5,8 @@ from discord.ui import Button, View
 import math
 import random
 import inflect
+from replit import db
+import time
 
 async def troll_game(message):
   def create_grid(cube):
@@ -43,8 +45,20 @@ async def troll_game(message):
       for y in range(len(grid)):
         if grid[x][y] == item:
           return x,y
-
+  
   def setMenuScreen():
+    global score 
+    
+    if (db['highScores'] == None):
+      db['highScores'] = []
+
+    print(db['highScores'])
+    value = db['highScores'].value
+    value.append([message.author.name,score + 1,time.asctime(time.gmtime())])
+    print(value)
+    db['highScores'] = value
+    print(db['highScores'])
+    
     grid = create_grid(":red_square:")
     grid = rItem(2,2,":regional_indicator_c:",grid)
     grid = rItem(2,3,":regional_indicator_a:",grid)
@@ -158,7 +172,7 @@ async def troll_game(message):
     while created == False:
       created = True
       posX = random.randint(0,8)
-      posY = random.randint(1,8)
+      posY = random.randint(3,8)
       if (grid[posY][posX] != ':blue_square:'):
         created = False
     return posY, posX
@@ -174,8 +188,11 @@ async def troll_game(message):
 
   grid = rItem(0,4,":spy:",grid)
 
-  starX, starY = create_star_position(grid)
-  grid = rItem(starX,starY,":hammer:",grid)
+  for x in range (3):
+    starX, starY = create_star_position(grid)
+    grid = rItem(starX,starY,":hammer:",grid)
+
+
   
   grid = grid_to_string(grid)
 
@@ -183,7 +200,16 @@ async def troll_game(message):
   score = 0
   
   async def button_callback(interaction):
+    
+    if (db['scores'].value == None):
+      db['scores'].value = []
+
+    value = db['scores'].value
+    
     global score
+      
+    user = str(interaction.user)
+    
     direction = interaction.data['custom_id']
     grid = interaction.message.content
     grid = string_to_grid(grid)
@@ -191,10 +217,15 @@ async def troll_game(message):
       grid = create_grid(":blue_square:")
       grid = rItem(4,4,":troll:",grid)
       grid = rItem(0,4,":spy:",grid)
-      starX, starY = create_star_position(grid)
-      grid = rItem(starX,starY,":hammer:",grid)
+      for x in range (3):
+        starX, starY = create_star_position(grid)
+        grid = rItem(starX,starY,":hammer:",grid)
       score = 0
+      value.append([user,time.asctime(time.gmtime()),interaction.data['custom_id'],' begin trolling :troll: :troll:'])
+      db['scores'] = value
     else :
+      value.append([user,time.asctime(time.gmtime()),interaction.data['custom_id'],score + 1])
+      db['scores'] = value
       grid = move_troll(direction,grid)
       grid = move_spy(grid)
       p = inflect.engine()
@@ -203,6 +234,14 @@ async def troll_game(message):
         grid = rItem(0,4,":" + strScore + ":",grid)
       elif score == 10:
         grid = rItem(0,4,":keycap_ten:",grid)
+      elif score > 99:
+        scoreStr = str(score)
+        strNumber1 = p.number_to_words(scoreStr[0])
+        strNumber2 = p.number_to_words(scoreStr[1])
+        strNumber3 = p.number_to_words(scoreStr[2])
+        grid = rItem(0,3,":" + strNumber1 + ":",grid)
+        grid = rItem(0,4,":" + strNumber2 + ":",grid)
+        grid = rItem(0,5,":" + strNumber3 + ":",grid)
       else :
         scoreStr = str(score)
         strNumber1 = p.number_to_words(scoreStr[0])
